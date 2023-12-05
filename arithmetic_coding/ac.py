@@ -1,10 +1,4 @@
-from arithmetic_compressor import AECompressor
-from arithmetic_compressor.models import StaticModel
-
-
-
-
-
+import math 
 
 def calculate_cumulative_probabilities(probabilities):
     cumulative_probabilities = {}
@@ -25,49 +19,81 @@ def encode(message, cumulative_probabilities):
     low, high = 0.0, 1.0
     for symbol in message:
         low, high = calculate_interval(symbol, low, high, cumulative_probabilities)
-    return (low + high) / 2
-
-def find_symbol(value, cumulative_probabilities):
-    for symbol, (low, high) in cumulative_probabilities.items():
-        if low <= value < high:
-            return symbol
-    # In case of rounding issues, return the last symbol
-    return list(cumulative_probabilities.keys())[-1]
+    return low, high
 
 def decode(encoded_value, length, cumulative_probabilities):
     message = ""
     low, high = 0.0, 1.0
     for _ in range(length):
-        symbol = find_symbol(encoded_value, cumulative_probabilities)
-        message += symbol
-        low, high = calculate_interval(symbol, low, high, cumulative_probabilities)
-        encoded_value = (encoded_value - low) / (high - low)
+        for symbol, (symbol_low, symbol_high) in cumulative_probabilities.items():
+            new_low, new_high = calculate_interval(symbol, low, high, cumulative_probabilities)
+            if new_low <= encoded_value < new_high:
+                message += symbol
+                low, high = new_low, new_high
+                break
     return message
 
+def calculate_original_message_size(message, alphabet_size):
+    bits_per_symbol = math.ceil(math.log2(alphabet_size))
+    return len(message) * bits_per_symbol
 
-def test_ac_coding(message,probabilities):
+def calculate_compressed_message_size(encoded_low, encoded_high):
+    return math.ceil(math.log2(1 / (encoded_high - encoded_low)))
+
+def test_arithmetic_coding(messages, probabilities):
     cumulative_probabilities = calculate_cumulative_probabilities(probabilities)
-    encoded_value = encode(message, cumulative_probabilities)
-    decoded_message = decode(encoded_value, len(message), cumulative_probabilities)
     
-    assert message == decoded_message, "Decoded message is not the same as the original message"
+    for message in messages:
+        encoded_low, encoded_high = encode(message, cumulative_probabilities)
+        decoded_message = decode((encoded_low + encoded_high) / 2, len(message), cumulative_probabilities)
 
+        assert message == decoded_message, f"Test failed for message: '{message}'. Expected: '{message}', got: '{decoded_message}'"
+        print(f"Test passed for message: '{message}'. Encoded: {encoded_low}, {encoded_high}")
 
-def test_ac_compressor(message,probabilities):
-    model = StaticModel(probabilities)
-    compressor = AECompressor(model)
-    encoded_message = compressor.compress(message)
-    decoded_message = compressor.decompress(encoded_message)
+def test_compression_efficiency(message, probabilities):
+    cumulative_probabilities = calculate_cumulative_probabilities(probabilities)
+    encoded_low, encoded_high = encode(message, cumulative_probabilities)
+    decoded_message = decode((encoded_low + encoded_high) / 2, len(message), cumulative_probabilities)
     
-    assert message == decoded_message, "Decoded message is not the same as the original message when using ac compressor package" 
-  
-    if __name__ == "__main__":
+    original_size = calculate_original_message_size(message, len(probabilities))
+    compressed_size = calculate_compressed_message_size(encoded_low, encoded_high)
+
+    assert message == decoded_message, f"Decoding failed for message: '{message}'"
+    return compressed_size, original_size
+
+def get_symbol_propability_of_msg(message):
     
-        probabilities = {"A": 0.7, 
-                        "B": 0.2, 
-                        "C": 0.1}
+    symbol_propability_of_msg = {}
+    for symbol in message:
+        if symbol not in symbol_propability_of_msg:
+            symbol_propability_of_msg[symbol] = 1
+        else:
+            symbol_propability_of_msg[symbol] += 1
+    
+    for symbol in symbol_propability_of_msg:
+        symbol_propability_of_msg[symbol] = symbol_propability_of_msg[symbol] / len(message)
+    
+    return symbol_propability_of_msg
+
+def time_fct_runtime(fct, *args):
+    import time
+    start = time.time()
+    fct(*args)
+    end = time.time()
+    return end - start
+    
+    
+    
+if __name__ == "__main__":
+    
+    TESTMESSAGES = ["A", "B", "C","ARBITRARYMESSAGE", ]
+
+    
+    for message in TESTMESSAGES:
         
-        message = "ABB"
+        symbol_propability_of_msg = get_symbol_propability_of_msg(message)
         
-        test_ac_coding(message,probabilities)
+        compression_Time = time_fct_runtime(test_compression_efficiency, message, symbol_propability_of_msg)
+        len_original_msg, len_compressed_msg = test_compression_efficiency(message, symbol_propability_of_msg)
         
+        print(f"msg = '{message}' \ncompr-time = {compression_Time*1000}ms\nlen-msg = {len_original_msg} bits \nlen-compr-msg = {len_compressed_msg} bits\n")
