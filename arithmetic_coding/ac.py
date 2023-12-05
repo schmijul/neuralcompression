@@ -51,7 +51,15 @@ def test_ac_coding(message,probabilities):
     decoded_message = decode(encoded_value, len(message), cumulative_probabilities)
     
     assert message == decoded_message, "Decoded message is not the same as the original message"
+
+
+def test_ac_compressor(message,probabilities):
+    model = StaticModel(probabilities)
+    compressor = AECompressor(model)
+    encoded_message = compressor.compress(message)
+    decoded_message = compressor.decompress(encoded_message)
     
+    assert message == decoded_message, "Decoded message is not the same as the original message when using ac compressor package" 
   
     if __name__ == "__main__":
     
