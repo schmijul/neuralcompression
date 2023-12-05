@@ -1,5 +1,5 @@
 import math 
-import binascii
+import struct
 def calculate_cumulative_probabilities(probabilities):
     cumulative_probabilities = {}
     cumulative = 0.0
@@ -33,28 +33,32 @@ def decode(encoded_value, length, cumulative_probabilities):
                 break
     return message
 
-def calc_msg_size_in_bits(message:str):
-    binary_msg = "".join(map(bin,bytearray(message,'utf8')))
-    return len(binary_msg) - 2 
+def float_to_binary(number):
 
-def test_arithmetic_coding(messages, probabilities):
-    cumulative_probabilities = calculate_cumulative_probabilities(probabilities)
+    packed_float = struct.pack('f', number)  # 'f' für 32-bit, 'd' für 64-bit
+    binary_string = ''.join(f'{byte:08b}' for byte in packed_float)
+    return binary_string    
+
+def string_to_binary(string):
+    return ''.join(f'{byte:08b}' for byte in string.encode('utf-8'))
+
+
+def calc_msg_size_in_bits(msg):
     
-    for message in messages:
-        encoded_low, encoded_high = encode(message, cumulative_probabilities)
-        decoded_message = decode((encoded_low + encoded_high) / 2, len(message), cumulative_probabilities)
-
-        assert message == decoded_message, f"Test failed for message: '{message}'. Expected: '{message}', got: '{decoded_message}'"
-        print(f"Test passed for message: '{message}'. Encoded: {encoded_low}, {encoded_high}")
-
+    if type(msg) == float:
+        return len(float_to_binary(msg))
+    elif type(msg) == str:
+        return len(string_to_binary(msg))
+    
+    
+    
 def test_compression_efficiency(message, probabilities):
     cumulative_probabilities = calculate_cumulative_probabilities(probabilities)
     encoded_low, encoded_high = encode(message, cumulative_probabilities)
     decoded_message = decode((encoded_low + encoded_high) / 2, len(message), cumulative_probabilities)
     
     original_size = calc_msg_size_in_bits(message)
-    
-    compressed_size = calc_msg_size_in_bits(str(encoded_low)) + calc_msg_size_in_bits(str(encoded_high))
+    compressed_size = calc_msg_size_in_bits(encoded_low) + calc_msg_size_in_bits(encoded_high)
 
     assert message == decoded_message, f"Decoding failed for message: '{message}'"
     return compressed_size, original_size
@@ -72,6 +76,17 @@ def get_symbol_propability_of_msg(message):
         symbol_propability_of_msg[symbol] = symbol_propability_of_msg[symbol] / len(message)
     
     return symbol_propability_of_msg
+
+def test_arithmetic_coding(messages, probabilities):
+    cumulative_probabilities = calculate_cumulative_probabilities(probabilities)
+    
+    for message in messages:
+        encoded_low, encoded_high = encode(message, cumulative_probabilities)
+        decoded_message = decode((encoded_low + encoded_high) / 2, len(message), cumulative_probabilities)
+
+        assert message == decoded_message, f"Test failed for message: '{message}'. Expected: '{message}', got: '{decoded_message}'"
+        print(f"Test passed for message: '{message}'. Encoded: {encoded_low}, {encoded_high}")
+
 
 def time_fct_runtime(fct, *args):
     import time
@@ -96,7 +111,3 @@ if __name__ == "__main__":
         
         print(f"msg = '{message}' \ncompr-time = {compression_Time*1000}ms\nlen-msg = {len_original_msg} bits \nlen-compr-msg = {len_compressed_msg} bits\n")
         
-        
-        
-        
-    print(calc_msg_size_in_bits("B"))
