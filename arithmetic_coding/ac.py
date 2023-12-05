@@ -1,5 +1,5 @@
 import math 
-
+import binascii
 def calculate_cumulative_probabilities(probabilities):
     cumulative_probabilities = {}
     cumulative = 0.0
@@ -33,12 +33,9 @@ def decode(encoded_value, length, cumulative_probabilities):
                 break
     return message
 
-def calculate_original_message_size(message, alphabet_size):
-    bits_per_symbol = math.ceil(math.log2(alphabet_size))
-    return len(message) * bits_per_symbol
-
-def calculate_compressed_message_size(encoded_low, encoded_high):
-    return math.ceil(math.log2(1 / (encoded_high - encoded_low)))
+def calc_msg_size_in_bits(message:str):
+    binary_msg = "".join(map(bin,bytearray(message,'utf8')))
+    return len(binary_msg) - 2 
 
 def test_arithmetic_coding(messages, probabilities):
     cumulative_probabilities = calculate_cumulative_probabilities(probabilities)
@@ -55,8 +52,9 @@ def test_compression_efficiency(message, probabilities):
     encoded_low, encoded_high = encode(message, cumulative_probabilities)
     decoded_message = decode((encoded_low + encoded_high) / 2, len(message), cumulative_probabilities)
     
-    original_size = calculate_original_message_size(message, len(probabilities))
-    compressed_size = calculate_compressed_message_size(encoded_low, encoded_high)
+    original_size = calc_msg_size_in_bits(message)
+    
+    compressed_size = calc_msg_size_in_bits(str(encoded_low)) + calc_msg_size_in_bits(str(encoded_high))
 
     assert message == decoded_message, f"Decoding failed for message: '{message}'"
     return compressed_size, original_size
@@ -94,6 +92,11 @@ if __name__ == "__main__":
         symbol_propability_of_msg = get_symbol_propability_of_msg(message)
         
         compression_Time = time_fct_runtime(test_compression_efficiency, message, symbol_propability_of_msg)
-        len_original_msg, len_compressed_msg = test_compression_efficiency(message, symbol_propability_of_msg)
+        len_compressed_msg, len_original_msg = test_compression_efficiency(message, symbol_propability_of_msg)
         
         print(f"msg = '{message}' \ncompr-time = {compression_Time*1000}ms\nlen-msg = {len_original_msg} bits \nlen-compr-msg = {len_compressed_msg} bits\n")
+        
+        
+        
+        
+    print(calc_msg_size_in_bits("B"))
