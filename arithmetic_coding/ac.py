@@ -1,5 +1,22 @@
 import math 
 import struct
+
+
+
+import sys
+from pathlib import Path
+
+# Get the directory of the current script
+current_dir = Path(__file__).parent
+
+# Get the parent directory (dir1)
+parent_dir = current_dir.parent
+
+# Add the parent directory to sys.path
+sys.path.append(str(parent_dir))
+
+# Now you can import script_in_dir1
+import fcts
 def calculate_cumulative_probabilities(probabilities):
     cumulative_probabilities = {}
     cumulative = 0.0
@@ -99,13 +116,10 @@ def time_fct_runtime(fct, *args):
     
 if __name__ == "__main__":
     
-    TESTMESSAGES = ["A", "B", "C","ARBITRARYMESSAGE", ]
-
-    
+    TESTMESSAGES = ["A", "B", "C","ARBITRARYMESSAGE"]   
     for message in TESTMESSAGES:
         
         symbol_propability_of_msg = get_symbol_propability_of_msg(message)
-        
         compression_Time = time_fct_runtime(test_compression_efficiency, message, symbol_propability_of_msg)
         len_compressed_msg, len_original_msg = test_compression_efficiency(message, symbol_propability_of_msg)
         
